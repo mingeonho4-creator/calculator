@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d0d0f">
+<meta name="mobile-web-app-capable" content="yes">
+<title>89% 목표 계산기</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d0f;
+    --surface: #17171b;
+    --surface2: #1f1f25;
+    --border: rgba(255,255,255,0.08);
+    --accent: #c8ff00;
+    --accent-dim: rgba(200,255,0,0.12);
+    --text: #f0f0ec;
+    --muted: #6b6b72;
+    --danger: #ff4f4f;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 480px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 56px 24px 40px;
+    gap: 0;
+  }
+
+  .header { margin-bottom: 40px; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(200,255,0,0.2);
+    margin-bottom: 16px;
+  }
+
+  .badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    color: var(--text);
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .fields {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .field {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px 20px;
+    transition: border-color 0.2s;
+  }
+
+  .field:focus-within { border-color: rgba(200,255,0,0.35); }
+
+  .field-label {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .field-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .field input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    font-size: 28px;
+    font-weight: 700;
+    font-family: 'DM Mono', monospace;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    width: 100%;
+  }
+
+  .field input::placeholder {
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .field-unit {
+    font-size: 16px;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .fixed-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .fixed-label {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.04em;
+  }
+
+  .fixed-value {
+    font-size: 22px;
+    font-weight: 700;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent);
+  }
+
+  .divider {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.1em;
+    margin: 4px 0 24px;
+    position: relative;
+  }
+
+  .divider::before, .divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 38%;
+    height: 1px;
+    background: var(--border);
+  }
+  .divider::before { left: 0; }
+  .divider::after { right: 0; }
+
+  .result {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px 24px;
+    display: none;
+    animation: slideUp 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .result.visible { display: block; }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-main-label {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .result-main-value {
+    font-size: 52px;
+    font-weight: 700;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: -0.03em;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 24px;
+  }
+
+  .result-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+  }
+
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .result-row:last-child { border-bottom: none; }
+
+  .result-row-label {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .result-row-val {
+    font-size: 15px;
+    font-weight: 500;
+    font-family: 'DM Mono', monospace;
+    color: var(--text);
+  }
+
+  .result-row-val.up { color: #4dff91; }
+
+  .error-msg {
+    font-size: 12px;
+    color: var(--danger);
+    padding: 10px 4px;
+    display: none;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .error-msg.visible { display: block; }
+
+  .reset-btn {
+    margin-top: 24px;
+    width: 100%;
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 14px;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+    transition: all 0.18s;
+    letter-spacing: 0.02em;
+  }
+
+  .reset-btn:active {
+    background: var(--surface);
+    transform: scale(0.98);
+  }
+
+  /* Install banner */
+  .install-banner {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--surface2);
+    border-top: 1px solid rgba(200,255,0,0.2);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    z-index: 100;
+    animation: slideUp 0.4s cubic-bezier(0.22,1,0.36,1);
+  }
+
+  .install-banner.hidden { display: none; }
+
+  .install-text {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  .install-text strong {
+    color: var(--accent);
+    display: block;
+    font-size: 14px;
+  }
+
+  .install-btn {
+    flex-shrink: 0;
+    padding: 10px 18px;
+    background: var(--accent);
+    color: #0d0d0f;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+  }
+
+  .install-dismiss {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  .footer {
+    margin-top: auto;
+    padding-top: 32px;
+    padding-bottom: 80px;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="badge">목표 퍼센트 계산기</div>
+    <h1>현재 값으로<br><span>89%</span> 목표 계산</h1>
+    <p class="subtitle">현재 가격과 퍼센트를 입력하면<br>89% 기준 목표값을 즉시 계산합니다.</p>
+  </div>
+
+  <div class="fields">
+    <div class="field">
+      <div class="field-label">현재 가격 (값)</div>
+      <div class="field-row">
+        <input type="number" id="price" placeholder="1741" inputmode="decimal" />
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-label">현재 퍼센트</div>
+      <div class="field-row">
+        <input type="number" id="percent" placeholder="54.2" inputmode="decimal" />
+        <span class="field-unit">%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider">목표 고정값</div>
+
+  <div class="fixed-badge">
+    <span class="fixed-label">TARGET</span>
+    <span class="fixed-value">89 %</span>
+  </div>
+
+  <div class="error-msg" id="error">⚠ 올바른 값을 입력해주세요 (퍼센트: 0~100)</div>
+
+  <div class="result" id="result">
+    <div class="result-main-label">89% 기준 목표값</div>
+    <div class="result-main-value" id="target-val">—</div>
+    <div class="result-rows">
+      <div class="result-row">
+        <span class="result-row-label">상승분</span>
+        <span class="result-row-val up" id="diff-val">—</span>
+      </div>
+      <div class="result-row">
+        <span class="result-row-label">상승률</span>
+        <span class="result-row-val up" id="rate-val">—</span>
+      </div>
+      <div class="result-row">
+        <span class="result-row-label">전체(100%) 기준값</span>
+        <span class="result-row-val" id="total-val">—</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="reset-btn" onclick="resetAll()">초기화</button>
+
+  <div class="footer">입력 즉시 자동 계산 · 89% 고정</div>
+</div>
+
+<!-- Install Banner (Android Chrome) -->
+<div class="install-banner hidden" id="installBanner">
+  <div class="install-text">
+    <strong>📱 앱으로 설치하기</strong>
+    홈화면에 추가하면 바로 실행 가능
+  </div>
+  <button class="install-btn" id="installBtn">설치</button>
+  <button class="install-dismiss" id="dismissBtn">✕</button>
+</div>
+
+<script>
+  // ─── Calculator ───────────────────────────────────────────
+  const priceInput = document.getElementById('price');
+  const percentInput = document.getElementById('percent');
+  const resultEl = document.getElementById('result');
+  const errorEl = document.getElementById('error');
+  const targetEl = document.getElementById('target-val');
+  const diffEl = document.getElementById('diff-val');
+  const rateEl = document.getElementById('rate-val');
+  const totalEl = document.getElementById('total-val');
+
+  function fmt(n) { return Math.round(n).toLocaleString('ko-KR'); }
+
+  function calc() {
+    const price = parseFloat(priceInput.value);
+    const pct = parseFloat(percentInput.value);
+
+    if (!priceInput.value && !percentInput.value) {
+      resultEl.classList.remove('visible');
+      errorEl.classList.remove('visible');
+      return;
+    }
+
+    if (isNaN(price) || isNaN(pct) || pct <= 0 || pct > 100 || price <= 0) {
+      resultEl.classList.remove('visible');
+      errorEl.classList.add('visible');
+      return;
+    }
+
+    errorEl.classList.remove('visible');
+
+    const total = price / (pct / 100);
+    const target = total * 0.89;
+    const diff = target - price;
+    const rate = (diff / price * 100);
+
+    targetEl.textContent = fmt(target);
+    diffEl.textContent = (diff >= 0 ? '+' : '') + fmt(diff);
+    rateEl.textContent = (rate >= 0 ? '+' : '') + rate.toFixed(1) + '%';
+    totalEl.textContent = fmt(total);
+
+    resultEl.classList.add('visible');
+  }
+
+  function resetAll() {
+    priceInput.value = '';
+    percentInput.value = '';
+    resultEl.classList.remove('visible');
+    errorEl.classList.remove('visible');
+    priceInput.focus();
+  }
+
+  priceInput.addEventListener('input', calc);
+  percentInput.addEventListener('input', calc);
+
+  // ─── PWA / Service Worker ─────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+
+  // ─── Install Banner (Android Chrome) ──────────────────────
+  let deferredPrompt = null;
+  const banner = document.getElementById('installBanner');
+  const installBtn = document.getElementById('installBtn');
+  const dismissBtn = document.getElementById('dismissBtn');
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    banner.classList.remove('hidden');
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    banner.classList.add('hidden');
+  });
+
+  dismissBtn.addEventListener('click', () => {
+    banner.classList.add('hidden');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    banner.classList.add('hidden');
+  });
+</script>
+</body>
+</html>
